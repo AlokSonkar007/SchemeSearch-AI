@@ -191,7 +191,7 @@ describe("PM-YASASVI", () => {
 
   it.each(["OBC", "EBC", "DNT"])(
     "recognises the %s target group",
-    (category) => {
+    (category: string) => {
       const profile = createProfile({
         occupation: "Student",
         category,

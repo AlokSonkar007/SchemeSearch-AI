@@ -2,6 +2,7 @@ import type { UserProfile } from "../components/ProfileWizard";
 import type {
   CriterionResult,
   EligibilityResult,
+  EligibilityRule,
   Scheme,
 } from "../types/scheme";
 

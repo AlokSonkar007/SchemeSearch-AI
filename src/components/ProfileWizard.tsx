@@ -21,6 +21,42 @@ export type UserProfile = {
   category: string;
   occupation: string;
   primaryGoal: string;
+
+  // Scholarship details
+  postMatricEnrolled: string;
+  class12Above80thPercentile: string;
+  courseMode: string;
+  receivesOtherScholarship: string;
+  isDiplomaCourse: string;
+  tookDropAfter12: string;
+  topClassInstitution: string;
+  aicteApprovedInstitution: string;
+  girlsInFamily: string;
+  qheiAdmission: string;
+
+  // PM-KISAN details
+  ownsCultivableLand: string;
+  landRecordedInApplicantName: string;
+  pmKisanExclusion: string;
+
+  // Housing details
+  ownsPuccaHouse: string;
+  receivedHousingAssistance: string;
+
+  // PMEGP details
+  proposedEnterpriseIsNew: string;
+  proposedProjectCost: string;
+  pmegpProjectType: string;
+  pmegpEducationEligible: string;
+  pmegpPreviousSubsidy: string;
+  pmegpCapitalExpenditure: string;
+
+  // PM-KMY details
+  agriculturalLandHolding: string;
+  pmKmyExclusion: string;
+
+  // PM-DAKSH details
+  dakshTargetGroup: string;
 };
 
 type District = {
@@ -52,33 +88,69 @@ const emptyProfile: UserProfile = {
   category: "",
   occupation: "",
   primaryGoal: "",
+
+  postMatricEnrolled: "",
+  class12Above80thPercentile: "",
+  courseMode: "",
+  receivesOtherScholarship: "",
+  isDiplomaCourse: "",
+  tookDropAfter12: "",
+  topClassInstitution: "",
+  aicteApprovedInstitution: "",
+  girlsInFamily: "",
+  qheiAdmission: "",
+
+  ownsCultivableLand: "",
+  landRecordedInApplicantName: "",
+  pmKisanExclusion: "",
+
+  ownsPuccaHouse: "",
+  receivedHousingAssistance: "",
+
+  proposedEnterpriseIsNew: "",
+  proposedProjectCost: "",
+  pmegpProjectType: "",
+  pmegpEducationEligible: "",
+  pmegpPreviousSubsidy: "",
+  pmegpCapitalExpenditure: "",
+
+  agriculturalLandHolding: "",
+  pmKmyExclusion: "",
+
+  dakshTargetGroup: "",
 };
 
 const steps = [
   {
     label: "About you",
     heading: "Let's start with you.",
-    description: "A few personal details help us find schemes relevant to your location and circumstances.",
+    description:
+      "A few personal details help us find schemes relevant to your location and circumstances.",
   },
   {
     label: "Your background",
     heading: "Understand your background.",
-    description: "These details help us identify financial assistance, scholarships and welfare benefits.",
+    description:
+      "These details help us identify financial assistance, scholarships and welfare benefits.",
   },
   {
     label: "Your interests",
     heading: "What are you looking for?",
-    description: "Tell us about your current situation and the support that matters most to you.",
+    description:
+      "Tell us about your current situation and the support that matters most to you.",
   },
 ];
+
+const yesNoOptions = ["Yes", "No", "Not sure"];
 
 export default function ProfileWizard({
   initialProfile,
   onSave,
 }: Props) {
-  const [profile, setProfile] = useState<UserProfile>(
-    initialProfile ?? emptyProfile
-  );
+  const [profile, setProfile] = useState<UserProfile>({
+    ...emptyProfile,
+    ...(initialProfile ?? {}),
+  });
 
   const [step, setStep] = useState(0);
 
@@ -135,7 +207,6 @@ export default function ProfileWizard({
   };
 
   const current = steps[step];
-
   const inputClass = "profile-v3-input";
 
   const selectOptions = (
@@ -191,17 +262,35 @@ export default function ProfileWizard({
     </div>
   );
 
+  const isStudent = profile.occupation === "Student";
+  const isFarmer = profile.occupation === "Farmer";
+
+  const isSC = profile.category === "SC";
+  const isST = profile.category === "ST";
+
+  const wantsHousing =
+    profile.primaryGoal === "Housing & Basic Needs";
+
+  const wantsBusiness =
+    profile.primaryGoal === "Business & Entrepreneurship";
+
+  const wantsAgriculture =
+    profile.primaryGoal === "Agriculture & Farming";
+
+  const wantsEmployment =
+    profile.primaryGoal === "Employment & Skill Development";
+
   return (
     <div className="profile-v3-wrapper">
       <div className="profile-v3-container">
-
-        {/* Top heading */}
         <div className="profile-v3-top">
           <div className="profile-v3-brand">
             <div className="profile-v3-brand-icon">
               <Sparkles size={19} />
             </div>
-            <span>SCHEMESEARCH <b>AI</b></span>
+            <span>
+              SCHEMESEARCH <b>AI</b>
+            </span>
           </div>
 
           <span className="profile-v3-secure">
@@ -210,32 +299,24 @@ export default function ProfileWizard({
           </span>
         </div>
 
-        {/* Main content */}
         <div className="profile-v3-main">
-
           <div className="profile-v3-intro">
             <div className="profile-v3-kicker">
               PROFILE SETUP <span>·</span> STEP {step + 1} OF 3
             </div>
 
             <h2>{current.heading}</h2>
-
             <p>{current.description}</p>
           </div>
 
-          {/* Progress */}
           <div className="profile-v3-progress">
             <div
               className="profile-v3-progress-fill"
-              style={{
-                width: `${((step + 1) / 3) * 100}%`,
-              }}
+              style={{ width: `${((step + 1) / 3) * 100}%` }}
             />
           </div>
 
-          {/* Form */}
           <div className="profile-v3-form">
-
             {step === 0 && (
               <>
                 <div className="profile-v3-section-label">
@@ -243,7 +324,6 @@ export default function ProfileWizard({
                 </div>
 
                 <div className="profile-v3-grid">
-
                   {field(
                     "Your age",
                     <input
@@ -265,7 +345,6 @@ export default function ProfileWizard({
                       (value) => update("gender", value)
                     )
                   )}
-
                 </div>
 
                 <div className="profile-v3-section-label profile-v3-location-label">
@@ -274,7 +353,6 @@ export default function ProfileWizard({
                 </div>
 
                 <div className="profile-v3-grid">
-
                   {field(
                     "State / Union Territory",
                     <select
@@ -303,7 +381,9 @@ export default function ProfileWizard({
                       onChange={(e) => update("district", e.target.value)}
                     >
                       <option value="">
-                        {profile.state ? "Select district" : "Choose state first"}
+                        {profile.state
+                          ? "Select district"
+                          : "Choose state first"}
                       </option>
                       {districts
                         .slice()
@@ -362,7 +442,6 @@ export default function ProfileWizard({
                 </div>
 
                 <div className="profile-v3-grid">
-
                   {field(
                     "Highest education",
                     selectOptions(
@@ -385,13 +464,12 @@ export default function ProfileWizard({
                   {field(
                     "Social category",
                     selectOptions(
-                      ["General", "OBC", "SC", "ST", "EWS", "Other"],
+                      ["General", "OBC", "EBC", "SC", "ST", "EWS", "DNT", "Other"],
                       profile.category,
                       (value) => update("category", value),
                       "Select category"
                     )
                   )}
-
                 </div>
 
                 <div className="profile-v3-note">
@@ -431,6 +509,371 @@ export default function ProfileWizard({
                   true
                 )}
 
+                {isStudent && (
+                  <>
+                    <div className="profile-v3-section-label profile-v3-section-spaced">
+                      SCHOLARSHIP ELIGIBILITY DETAILS
+                    </div>
+
+                    <p className="profile-v3-helper">
+                      Select "Not sure" if you do not know an answer.
+                    </p>
+
+                    <div className="profile-v3-grid">
+                      {field(
+                        "Did you score above the 80th percentile in your Class 12 board stream?",
+                        choiceGroup(
+                          yesNoOptions,
+                          profile.class12Above80thPercentile,
+                          (value) =>
+                            update("class12Above80thPercentile", value)
+                        ),
+                        true
+                      )}
+
+                      {field(
+                        "What type of course are you pursuing?",
+                        selectOptions(
+                          [
+                            "Regular",
+                            "Distance / Correspondence",
+                            "Not sure",
+                          ],
+                          profile.courseMode,
+                          (value) => update("courseMode", value),
+                          "Select course mode"
+                        ),
+                        true
+                      )}
+
+                      {field(
+                        "Are you receiving another scholarship or fee reimbursement?",
+                        choiceGroup(
+                          yesNoOptions,
+                          profile.receivesOtherScholarship,
+                          (value) =>
+                            update("receivesOtherScholarship", value)
+                        ),
+                        true
+                      )}
+
+                      {field(
+                        "Are you enrolled in a diploma course?",
+                        choiceGroup(
+                          yesNoOptions,
+                          profile.isDiplomaCourse,
+                          (value) => update("isDiplomaCourse", value)
+                        ),
+                        true
+                      )}
+
+                      {field(
+                        "Did you take a gap year after passing Class 12 before starting your current course?",
+                        choiceGroup(
+                          yesNoOptions,
+                          profile.tookDropAfter12,
+                          (value) => update("tookDropAfter12", value)
+                        ),
+                        true
+                      )}
+
+                      {isSC &&
+                        field(
+                          "Are you currently enrolled in a post-matric course?",
+                          choiceGroup(
+                            yesNoOptions,
+                            profile.postMatricEnrolled,
+                            (value) => update("postMatricEnrolled", value)
+                          ),
+                          true
+                        )}
+
+                      {isST &&
+                        field(
+                          "Is your institution on the Ministry's notified Top Class list?",
+                          choiceGroup(
+                            yesNoOptions,
+                            profile.topClassInstitution,
+                            (value) => update("topClassInstitution", value)
+                          ),
+                          true
+                        )}
+
+                      {field(
+                        "Is your institution approved by AICTE?",
+                        choiceGroup(
+                          yesNoOptions,
+                          profile.aicteApprovedInstitution,
+                          (value) =>
+                            update("aicteApprovedInstitution", value)
+                        ),
+                        true
+                      )}
+
+                      {profile.gender === "Female" &&
+                        field(
+                          "How many girl children are there in your family, including you?",
+                          selectOptions(
+                            ["1", "2", "3", "4", "5 or more"],
+                            profile.girlsInFamily,
+                            (value) => update("girlsInFamily", value),
+                            "Select number"
+                          ),
+                          true
+                        )}
+
+                      {field(
+                        "Have you been admitted to an institution listed under the PM-Vidyalaxmi Quality Higher Educational Institutions (QHEI) framework?",
+                        choiceGroup(
+                          yesNoOptions,
+                          profile.qheiAdmission,
+                          (value) => update("qheiAdmission", value)
+                        ),
+                        true
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {(isFarmer || wantsAgriculture) && (
+                  <>
+                    <div className="profile-v3-section-label profile-v3-section-spaced">
+                      AGRICULTURAL LAND DETAILS
+                    </div>
+
+                    <p className="profile-v3-helper">
+                      These questions help assess PM-KISAN and PM-KMY
+                      eligibility. PM-KISAN exclusions include certain
+                      institutional, public-office, government-service,
+                      pension and income-tax categories.
+                    </p>
+
+                    <div className="profile-v3-grid">
+                      {field(
+                        "Do you own cultivable agricultural land?",
+                        choiceGroup(
+                          yesNoOptions,
+                          profile.ownsCultivableLand,
+                          (value) => update("ownsCultivableLand", value)
+                        ),
+                        true
+                      )}
+
+                      {field(
+                        "Is the agricultural land recorded in your name?",
+                        choiceGroup(
+                          yesNoOptions,
+                          profile.landRecordedInApplicantName,
+                          (value) =>
+                            update("landRecordedInApplicantName", value)
+                        ),
+                        true
+                      )}
+
+                      {field(
+                        "Does any PM-KISAN exclusion condition apply to you?",
+                        choiceGroup(
+                          yesNoOptions,
+                          profile.pmKisanExclusion,
+                          (value) => update("pmKisanExclusion", value)
+                        ),
+                        true
+                      )}
+
+                      {field(
+                        "What is your total agricultural landholding in hectares?",
+                        <input
+                          className={inputClass}
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          placeholder="Enter landholding in hectares"
+                          value={profile.agriculturalLandHolding}
+                          onChange={(e) =>
+                            update("agriculturalLandHolding", e.target.value)
+                          }
+                        />,
+                        true
+                      )}
+
+                      {field(
+                        "Are you covered by another statutory social-security pension scheme or a PM-KMY exclusion condition?",
+                        choiceGroup(
+                          yesNoOptions,
+                          profile.pmKmyExclusion,
+                          (value) => update("pmKmyExclusion", value)
+                        ),
+                        true
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {wantsHousing && (
+                  <>
+                    <div className="profile-v3-section-label profile-v3-section-spaced">
+                      HOUSING INFORMATION
+                    </div>
+
+                    <p className="profile-v3-helper">
+                      For PMAY-U 2.0 screening, consider pucca-house
+                      ownership anywhere in India and government housing
+                      assistance received during the last 20 years.
+                    </p>
+
+                    <div className="profile-v3-grid">
+                      {field(
+                        "Does anyone in your household own a pucca house anywhere in India?",
+                        choiceGroup(
+                          yesNoOptions,
+                          profile.ownsPuccaHouse,
+                          (value) => update("ownsPuccaHouse", value)
+                        ),
+                        true
+                      )}
+
+                      {field(
+                        "Has anyone in your household received government housing assistance during the last 20 years?",
+                        choiceGroup(
+                          yesNoOptions,
+                          profile.receivedHousingAssistance,
+                          (value) =>
+                            update("receivedHousingAssistance", value)
+                        ),
+                        true
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {wantsBusiness && (
+                  <>
+                    <div className="profile-v3-section-label profile-v3-section-spaced">
+                      BUSINESS & PROJECT DETAILS
+                    </div>
+
+                    <p className="profile-v3-helper">
+                      These questions help screen PMEGP. Final approval
+                      depends on project appraisal, bank assessment and
+                      official programme conditions.
+                    </p>
+
+                    <div className="profile-v3-grid">
+                      {field(
+                        "Are you planning to establish a completely new business or enterprise?",
+                        choiceGroup(
+                          yesNoOptions,
+                          profile.proposedEnterpriseIsNew,
+                          (value) =>
+                            update("proposedEnterpriseIsNew", value)
+                        ),
+                        true
+                      )}
+
+                      {field(
+                        "Type of proposed project",
+                        selectOptions(
+                          ["Manufacturing", "Service / Business"],
+                          profile.pmegpProjectType,
+                          (value) => update("pmegpProjectType", value),
+                          "Select project type"
+                        ),
+                        true
+                      )}
+
+                      {field(
+                        "Estimated total project cost (₹)",
+                        <div className="profile-v3-income">
+                          <span>₹</span>
+                          <input
+                            className={inputClass}
+                            type="number"
+                            min="0"
+                            placeholder="Enter estimated project cost"
+                            value={profile.proposedProjectCost}
+                            onChange={(e) =>
+                              update("proposedProjectCost", e.target.value)
+                            }
+                          />
+                        </div>,
+                        true
+                      )}
+
+                      {field(
+                        "Is your educational qualification at least Class 8?",
+                        choiceGroup(
+                          yesNoOptions,
+                          profile.pmegpEducationEligible,
+                          (value) =>
+                            update("pmegpEducationEligible", value)
+                        ),
+                        true
+                      )}
+
+                      {field(
+                        "Have you or your proposed unit previously received a government subsidy for this project or enterprise?",
+                        choiceGroup(
+                          yesNoOptions,
+                          profile.pmegpPreviousSubsidy,
+                          (value) =>
+                            update("pmegpPreviousSubsidy", value)
+                        ),
+                        true
+                      )}
+
+                      {field(
+                        "Does your project include capital expenditure (fixed assets/equipment)?",
+                        choiceGroup(
+                          yesNoOptions,
+                          profile.pmegpCapitalExpenditure,
+                          (value) =>
+                            update("pmegpCapitalExpenditure", value)
+                        ),
+                        true
+                      )}
+                    </div>
+
+                    <p className="profile-v3-helper">
+                      PMEGP's Class 8 qualification condition depends on
+                      project cost: above ₹10 lakh for manufacturing or
+                      above ₹5 lakh for service/business projects.
+                    </p>
+                  </>
+                )}
+
+                {wantsEmployment && (
+                  <>
+                    <div className="profile-v3-section-label profile-v3-section-spaced">
+                      SKILL DEVELOPMENT DETAILS
+                    </div>
+
+                    <p className="profile-v3-helper">
+                      PM-DAKSH covers specified target groups. Choose
+                      the group that best describes your situation.
+                    </p>
+
+                    {field(
+                      "Which target group applies to you?",
+                      selectOptions(
+                        [
+                          "SC",
+                          "OBC",
+                          "EWS",
+                          "DNT",
+                          "Safai Karamchari",
+                          "Waste Picker",
+                          "Not sure",
+                          "None of these",
+                        ],
+                        profile.dakshTargetGroup,
+                        (value) => update("dakshTargetGroup", value),
+                        "Select target group"
+                      ),
+                      true
+                    )}
+                  </>
+                )}
+
                 <div className="profile-v3-section-label profile-v3-section-spaced">
                   YOUR PRIORITY
                 </div>
@@ -466,10 +909,8 @@ export default function ProfileWizard({
                 </div>
               </>
             )}
-
           </div>
 
-          {/* Footer */}
           <div className="profile-v3-footer">
             <button
               type="button"
@@ -509,13 +950,11 @@ export default function ProfileWizard({
               )}
             </div>
           </div>
-
         </div>
 
         <p className="profile-v3-bottom">
           Your information helps us find relevant government schemes.
         </p>
-
       </div>
     </div>
   );

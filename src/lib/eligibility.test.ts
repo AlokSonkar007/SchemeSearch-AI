@@ -58,9 +58,9 @@ const getScheme = (id: string) => {
 };
 
 describe("Scheme database", () => {
-  it("contains 12 schemes with unique IDs", () => {
-    expect(schemes).toHaveLength(12);
-    expect(new Set(schemes.map((scheme) => scheme.id)).size).toBe(12);
+  it("contains at least 50 schemes with unique IDs", () => {
+    expect(schemes.length).toBeGreaterThanOrEqual(50);
+    expect(new Set(schemes.map((scheme) => scheme.id)).size).toBe(schemes.length);
   });
 
   it("has valid, weighted criteria for every scheme", () => {

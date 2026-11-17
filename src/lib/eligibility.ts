@@ -1,3 +1,4 @@
+
 import type { UserProfile } from "../components/ProfileWizard";
 import type {
   Scheme,
@@ -29,21 +30,36 @@ function evaluateRule(
 
   switch (rule.operator) {
     case "min":
-      return Number(actual) >= Number(expected) ? "met" : "not-met";
+    case "max": {
+      const actualNumber = Number(actual);
+      const expectedNumber = Number(expected);
 
-    case "max":
-      return Number(actual) <= Number(expected) ? "met" : "not-met";
+      if (
+        !Number.isFinite(actualNumber) ||
+        !Number.isFinite(expectedNumber)
+      ) {
+        return "missing";
+      }
+
+      return rule.operator === "min"
+        ? actualNumber >= expectedNumber ? "met" : "not-met"
+        : actualNumber <= expectedNumber ? "met" : "not-met";
+    }
 
     case "equals":
-      return actual.toLowerCase() === String(expected).toLowerCase()
+      return actual.toLowerCase() === String(expected).trim().toLowerCase()
         ? "met"
         : "not-met";
 
     case "oneOf": {
       const options = Array.isArray(expected) ? expected : [expected];
+
       return options.some(
-        option => String(option).toLowerCase() === actual.toLowerCase()
-      ) ? "met" : "not-met";
+        option =>
+          String(option).trim().toLowerCase() === actual.toLowerCase()
+      )
+        ? "met"
+        : "not-met";
     }
 
     case "educationAtLeast": {
@@ -89,16 +105,19 @@ export function evaluateScheme(
     status = "potentially-eligible";
   }
 
-  const evaluated = criteria.filter(item => item.status !== "missing");
-
-  const totalWeight = evaluated.reduce(
-    (sum, item) => sum + item.rule.weight,
+  // Missing criteria count as zero matches instead of being excluded.
+  const totalWeight = criteria.reduce(
+    (sum, item) => sum + Math.max(0, item.rule.weight),
     0
   );
 
-  const matchedWeight = evaluated.reduce(
+  const matchedWeight = criteria.reduce(
     (sum, item) =>
-      sum + (item.status === "met" ? item.rule.weight : 0),
+      sum + (
+        item.status === "met"
+          ? Math.max(0, item.rule.weight)
+          : 0
+      ),
     0
   );
 
@@ -106,8 +125,12 @@ export function evaluateScheme(
     ? Math.round((matchedWeight / totalWeight) * 100)
     : 0;
 
+  const evaluatedCount = criteria.filter(
+    item => item.status !== "missing"
+  ).length;
+
   const informationCoverage = criteria.length > 0
-    ? Math.round((evaluated.length / criteria.length) * 100)
+    ? Math.round((evaluatedCount / criteria.length) * 100)
     : 0;
 
   return {

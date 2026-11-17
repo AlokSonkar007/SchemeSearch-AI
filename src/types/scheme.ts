@@ -5,7 +5,10 @@ export type RuleOperator =
   | "max"
   | "equals"
   | "oneOf"
-  | "educationAtLeast";
+  | "educationAtLeast"
+  | "pmegpEducationThreshold"
+  | "pmegpProjectCostLimit"
+  | "pmDakshIncomeThreshold";
 
 export type EligibilityRule = {
   field: keyof UserProfile;

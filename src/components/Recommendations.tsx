@@ -1,6 +1,13 @@
 import {
-  Search, CheckCircle2, XCircle, CircleHelp,
-  ArrowRight, ShieldCheck
+  Search,
+  CheckCircle2,
+  XCircle,
+  CircleHelp,
+  ArrowRight,
+  ShieldCheck,
+  Bookmark,
+  BookmarkCheck,
+  Eye,
 } from "lucide-react";
 
 import type { UserProfile } from "./ProfileWizard";
@@ -9,18 +16,24 @@ import { recommendSchemes } from "../lib/eligibility";
 
 type Props = {
   profile: UserProfile | null;
+  savedSchemeIds: string[];
   onCompleteProfile: () => void;
+  onToggleSave: (id: string) => void;
+  onViewScheme: (id: string) => void;
 };
 
 const statusLabels = {
   "potentially-eligible": "Potentially eligible",
   "needs-information": "More information needed",
-  "not-eligible": "Mandatory condition failed"
+  "not-eligible": "Mandatory condition failed",
 };
 
 export default function Recommendations({
   profile,
-  onCompleteProfile
+  savedSchemeIds,
+  onCompleteProfile,
+  onToggleSave,
+  onViewScheme,
 }: Props) {
   if (!profile) {
     return (
@@ -41,11 +54,11 @@ export default function Recommendations({
   const results = recommendSchemes(profile, schemes);
 
   const eligible = results.filter(
-    item => item.status === "potentially-eligible"
+    (item) => item.status === "potentially-eligible"
   ).length;
 
   const needsInformation = results.filter(
-    item => item.status === "needs-information"
+    (item) => item.status === "needs-information"
   ).length;
 
   return (
@@ -87,68 +100,97 @@ export default function Recommendations({
       </div>
 
       <div className="scheme-results">
-        {results.map((result, index) => (
-          <article className="scheme-result-card" key={result.scheme.id}>
-            <div className="result-top">
-              <div className="result-category">{result.scheme.category}</div>
-              {index === 0 && result.status === "potentially-eligible" && (
-                <span className="top-match">TOP MATCH</span>
-              )}
-            </div>
+        {results.map((result, index) => {
+          const saved = savedSchemeIds.includes(result.scheme.id);
 
-            <h3>{result.scheme.name}</h3>
-            <p className="result-description">{result.scheme.description}</p>
-
-            <div className="result-score-row">
-              <div>
-                <strong>{result.matchScore}%</strong>
-                <span>Profile match</span>
-              </div>
-              <span className={`result-status ${result.status}`}>
-                {statusLabels[result.status]}
-              </span>
-            </div>
-
-            <div className="match-progress">
-              <div style={{ width: `${result.matchScore}%` }} />
-            </div>
-
-            <div className="coverage-note">
-              Information coverage: {result.informationCoverage}%
-            </div>
-
-            <div className="criteria-list">
-              {result.criteria.map((item, i) => (
-                <div className="criteria-row" key={`${result.scheme.id}-${i}`}>
-                  {item.status === "met" ? (
-                    <CheckCircle2 size={16} className="criterion-met" />
-                  ) : item.status === "not-met" ? (
-                    <XCircle size={16} className="criterion-failed" />
-                  ) : (
-                    <CircleHelp size={16} className="criterion-missing" />
-                  )}
-                  <span>{item.rule.label}</span>
-                  <small>
-                    {item.status === "met"
-                      ? "Met"
-                      : item.status === "not-met"
-                      ? "Not met"
-                      : "Unknown"}
-                  </small>
+          return (
+            <article className="scheme-result-card" key={result.scheme.id}>
+              <div className="result-top">
+                <div className="result-category">
+                  {result.scheme.category}
                 </div>
-              ))}
-            </div>
+                {index === 0 && result.status === "potentially-eligible" && (
+                  <span className="top-match">TOP MATCH</span>
+                )}
+              </div>
 
-            <div className="scheme-benefit">
-              <span>Indicative benefit</span>
-              <strong>{result.scheme.benefit}</strong>
-            </div>
+              <h3>{result.scheme.name}</h3>
+              <p className="result-description">
+                {result.scheme.description}
+              </p>
 
-            <div className="result-footer">
-              <span>Sample record · Not verified</span>
-            </div>
-          </article>
-        ))}
+              <div className="result-score-row">
+                <div>
+                  <strong>{result.matchScore}%</strong>
+                  <span>Profile match</span>
+                </div>
+                <span className={`result-status ${result.status}`}>
+                  {statusLabels[result.status]}
+                </span>
+              </div>
+
+              <div className="match-progress">
+                <div style={{ width: `${result.matchScore}%` }} />
+              </div>
+
+              <div className="coverage-note">
+                Information coverage: {result.informationCoverage}%
+              </div>
+
+              <div className="criteria-list">
+                {result.criteria.map((item, i) => (
+                  <div className="criteria-row" key={`${result.scheme.id}-${i}`}>
+                    {item.status === "met" ? (
+                      <CheckCircle2 size={16} className="criterion-met" />
+                    ) : item.status === "not-met" ? (
+                      <XCircle size={16} className="criterion-failed" />
+                    ) : (
+                      <CircleHelp size={16} className="criterion-missing" />
+                    )}
+                    <span>{item.rule.label}</span>
+                    <small>
+                      {item.status === "met"
+                        ? "Met"
+                        : item.status === "not-met"
+                          ? "Not met"
+                          : "Unknown"}
+                    </small>
+                  </div>
+                ))}
+              </div>
+
+              <div className="scheme-benefit">
+                <span>Indicative benefit</span>
+                <strong>{result.scheme.benefit}</strong>
+              </div>
+
+              <div className="result-footer">
+                <span>Sample record · Not verified</span>
+              </div>
+
+              <div className="recommendation-card-actions">
+                <button
+                  className="secondary-button"
+                  onClick={() => onViewScheme(result.scheme.id)}
+                >
+                  <Eye size={15} /> Details
+                </button>
+
+                <button
+                  className={`secondary-button ${saved ? "saved-action" : ""}`}
+                  onClick={() => onToggleSave(result.scheme.id)}
+                >
+                  {saved ? (
+                    <BookmarkCheck size={15} />
+                  ) : (
+                    <Bookmark size={15} />
+                  )}
+                  {saved ? "Saved" : "Save scheme"}
+                </button>
+              </div>
+            </article>
+          );
+        })}
       </div>
 
       <div className="recommendation-disclaimer">

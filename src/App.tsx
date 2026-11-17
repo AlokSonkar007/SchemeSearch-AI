@@ -1,5 +1,5 @@
-
 import { useState } from "react";
+
 import {
   Landmark,
   LayoutDashboard,
@@ -24,18 +24,31 @@ import ProfileWizard, {
 } from "./components/ProfileWizard";
 
 import Recommendations from "./components/Recommendations";
+import SavedSchemes from "./components/SavedSchemes";
+import SchemeDetails from "./components/SchemeDetails";
+import ApplicationTracker from "./components/ApplicationTracker";
+
 import { schemes } from "./data/schemes";
-import { recommendSchemes } from "./lib/eligibility";
+import { recommendSchemes, evaluateScheme } from "./lib/eligibility";
 import { storage } from "./lib/storage";
+
+import type {
+  ApplicationStatus,
+  SchemeApplication,
+} from "./types/application";
 
 type Page =
   | "Overview"
   | "Find Schemes"
   | "My Profile"
   | "Saved Schemes"
-  | "Applications";
+  | "Applications"
+  | "Scheme Details";
 
-const navigation: { label: Page; icon: typeof LayoutDashboard }[] = [
+const navigation: {
+  label: Exclude<Page, "Scheme Details">;
+  icon: typeof LayoutDashboard;
+}[] = [
   { label: "Overview", icon: LayoutDashboard },
   { label: "Find Schemes", icon: Search },
   { label: "My Profile", icon: UserRound },
@@ -46,8 +59,21 @@ const navigation: { label: Page; icon: typeof LayoutDashboard }[] = [
 function App() {
   const [activePage, setActivePage] = useState<Page>("Overview");
   const [mobileOpen, setMobileOpen] = useState(false);
+
   const [profile, setProfile] = useState<UserProfile | null>(
-  () => storage.getProfile<UserProfile>()
+    () => storage.getProfile<UserProfile>()
+  );
+
+  const [savedSchemeIds, setSavedSchemeIds] = useState<string[]>(
+    () => storage.getSavedSchemes()
+  );
+
+  const [applications, setApplications] = useState<SchemeApplication[]>(
+    () => storage.getApplications<SchemeApplication>()
+  );
+
+  const [selectedSchemeId, setSelectedSchemeId] = useState<string | null>(
+    null
   );
 
   const descriptions: Record<Page, string> = {
@@ -59,10 +85,17 @@ function App() {
     "Saved Schemes":
       "Keep track of opportunities you want to explore.",
     Applications:
-      "Track the progress of your scheme applications.",
+      "Track your scheme application progress.",
+    "Scheme Details":
+      "Explore scheme information and your eligibility assessment.",
   };
 
-  // Calculate recommendations whenever a profile is available.
+  const navigate = (page: Page) => {
+    setActivePage(page);
+    setMobileOpen(false);
+  };
+
+  // Calculate recommendations.
   const results = profile
     ? recommendSchemes(profile, schemes)
     : [];
@@ -79,14 +112,103 @@ function App() {
     .filter((result) => result.status !== "not-eligible")
     .slice(0, 2);
 
-  const navigate = (page: Page) => {
-    setActivePage(page);
-    setMobileOpen(false);
+  // Saved schemes.
+  const savedSchemes = schemes.filter((scheme) =>
+    savedSchemeIds.includes(scheme.id)
+  );
+
+  const toggleSavedScheme = (id: string) => {
+    const updated = savedSchemeIds.includes(id)
+      ? savedSchemeIds.filter((savedId) => savedId !== id)
+      : [...savedSchemeIds, id];
+
+    storage.saveSavedSchemes(updated);
+    setSavedSchemeIds(updated);
+  };
+
+  // Scheme details.
+  const selectedScheme = schemes.find(
+    (scheme) => scheme.id === selectedSchemeId
+  );
+
+  const selectedResult =
+    profile && selectedScheme
+      ? evaluateScheme(profile, selectedScheme)
+      : null;
+
+  const isSelectedSchemeTracked = applications.some(
+    (application) => application.schemeId === selectedSchemeId
+  );
+
+  const openScheme = (id: string) => {
+    setSelectedSchemeId(id);
+    navigate("Scheme Details");
+  };
+
+  // Application tracking.
+  const trackScheme = (schemeId: string) => {
+    const existing = applications.some(
+      (application) => application.schemeId === schemeId
+    );
+
+    if (existing) {
+      navigate("Applications");
+      return;
+    }
+
+    const now = new Date().toISOString();
+
+    const newApplication: SchemeApplication = {
+      id: crypto.randomUUID(),
+      schemeId,
+      status: "interested",
+      notes: "",
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const updated = [...applications, newApplication];
+
+    storage.saveApplications(updated);
+    setApplications(updated);
+    navigate("Applications");
+  };
+
+  const updateApplicationStatus = (
+    id: string,
+    status: ApplicationStatus
+  ) => {
+    const updated = applications.map((application) =>
+      application.id === id
+        ? {
+            ...application,
+            status,
+            updatedAt: new Date().toISOString(),
+          }
+        : application
+    );
+
+    storage.saveApplications(updated);
+    setApplications(updated);
+  };
+
+  const updateApplicationNotes = (id: string, notes: string) => {
+    const updated = applications.map((application) =>
+      application.id === id
+        ? {
+            ...application,
+            notes,
+            updatedAt: new Date().toISOString(),
+          }
+        : application
+    );
+
+    storage.saveApplications(updated);
+    setApplications(updated);
   };
 
   return (
     <div className="app-shell">
-      {/* Mobile navigation overlay */}
       {mobileOpen && (
         <button
           className="mobile-overlay"
@@ -95,10 +217,8 @@ function App() {
         />
       )}
 
-      {/* Sidebar */}
-      <aside
-        className={`sidebar ${mobileOpen ? "sidebar-open" : ""}`}
-      >
+      {/* SIDEBAR */}
+      <aside className={`sidebar ${mobileOpen ? "sidebar-open" : ""}`}>
         <div className="brand">
           <div className="brand-icon">
             <Landmark size={23} />
@@ -165,7 +285,7 @@ function App() {
         </div>
       </aside>
 
-      {/* Main application */}
+      {/* MAIN APPLICATION */}
       <main className="main-area">
         <header className="topbar">
           <button
@@ -177,7 +297,7 @@ function App() {
           </button>
 
           <div className="breadcrumb">
-            Workspace <span>/</span>{" "}
+            Workspace <span>/</span>
             <strong>{activePage}</strong>
           </div>
 
@@ -199,7 +319,7 @@ function App() {
         </header>
 
         <div className="page-container">
-          {/* Page heading */}
+          {/* PAGE HEADING */}
           <div className="page-heading">
             <div>
               <div className="eyebrow">
@@ -226,8 +346,8 @@ function App() {
             )}
           </div>
 
-          {/* OVERVIEW PAGE */}
-          {activePage === "Overview" ? (
+          {/* OVERVIEW */}
+          {activePage === "Overview" && (
             <>
               <section className="hero-banner">
                 <div className="hero-content">
@@ -261,10 +381,7 @@ function App() {
 
                 <div className="hero-art">
                   <div className="hero-art-circle">
-                    <Landmark
-                      size={78}
-                      strokeWidth={1.1}
-                    />
+                    <Landmark size={78} strokeWidth={1.1} />
                   </div>
 
                   <div className="floating-card">
@@ -277,7 +394,7 @@ function App() {
                 </div>
               </section>
 
-              {/* Dynamic statistics */}
+              {/* STATISTICS */}
               <section className="stats-grid">
                 <div className="stat-card">
                   <div className="stat-icon blue">
@@ -324,7 +441,9 @@ function App() {
                     <Bookmark size={20} />
                   </div>
 
-                  <div className="stat-number">0</div>
+                  <div className="stat-number">
+                    {savedSchemeIds.length}
+                  </div>
 
                   <div className="stat-title">
                     Saved opportunities
@@ -336,7 +455,7 @@ function App() {
                 </div>
               </section>
 
-              {/* Dashboard content */}
+              {/* DASHBOARD CONTENT */}
               <div className="content-grid">
                 <section className="panel recommendations-panel">
                   <div className="panel-heading">
@@ -361,9 +480,7 @@ function App() {
                         <Search size={25} />
                       </div>
 
-                      <h4>
-                        Your recommendations are waiting
-                      </h4>
+                      <h4>Your recommendations are waiting</h4>
 
                       <p>
                         Complete your profile to see schemes that
@@ -395,17 +512,14 @@ function App() {
 
                           <div className="result-score-row">
                             <div>
-                              <strong>
-                                {result.matchScore}%
-                              </strong>
+                              <strong>{result.matchScore}%</strong>
                               <span>Profile match</span>
                             </div>
 
                             <span
                               className={`result-status ${result.status}`}
                             >
-                              {result.status ===
-                              "potentially-eligible"
+                              {result.status === "potentially-eligible"
                                 ? "Potential match"
                                 : "Needs information"}
                             </span>
@@ -418,6 +532,13 @@ function App() {
                               }}
                             />
                           </div>
+
+                          <button
+                            className="text-button"
+                            onClick={() => openScheme(result.scheme.id)}
+                          >
+                            View details <ArrowRight size={15} />
+                          </button>
                         </article>
                       ))}
                     </div>
@@ -431,8 +552,7 @@ function App() {
 
                       <p>
                         Your current profile does not satisfy the
-                        mandatory conditions in our available
-                        prototype records.
+                        mandatory conditions in our prototype records.
                       </p>
 
                       <button
@@ -463,11 +583,7 @@ function App() {
                           profile ? "" : "current"
                         }`}
                       >
-                        {profile ? (
-                          <CheckCircle2 size={16} />
-                        ) : (
-                          <UserRound size={16} />
-                        )}
+                        <UserRound size={16} />
                       </div>
 
                       <div>
@@ -488,11 +604,7 @@ function App() {
                           profile ? "current" : ""
                         }`}
                       >
-                        {profile ? (
-                          <CheckCircle2 size={16} />
-                        ) : (
-                          <CheckCircle2 size={16} />
-                        )}
+                        <CheckCircle2 size={16} />
                       </div>
 
                       <div>
@@ -526,9 +638,7 @@ function App() {
                   <button
                     className="journey-button"
                     onClick={() =>
-                      navigate(
-                        profile ? "Find Schemes" : "My Profile"
-                      )
+                      navigate(profile ? "Find Schemes" : "My Profile")
                     }
                   >
                     {profile
@@ -542,14 +652,16 @@ function App() {
               <div className="trust-note">
                 <ShieldCheck size={17} />
                 <span>
-                  Informational assistance only. Final scheme
-                  eligibility and approval are determined by the
-                  respective government authorities.
+                  Informational assistance only. Final scheme eligibility
+                  and approval are determined by the respective government
+                  authorities.
                 </span>
               </div>
             </>
-          ) : activePage === "My Profile" ? (
-            /* PROFILE PAGE */
+          )}
+
+          {/* PROFILE PAGE */}
+          {activePage === "My Profile" && (
             <ProfileWizard
               initialProfile={profile}
               onSave={(savedProfile) => {
@@ -558,33 +670,62 @@ function App() {
                 navigate("Overview");
               }}
             />
-          ) : activePage === "Find Schemes" ? (
-            /* RECOMMENDATION PAGE */
+          )}
+
+          {/* FIND SCHEMES */}
+          {activePage === "Find Schemes" && (
             <Recommendations
               profile={profile}
+              savedSchemeIds={savedSchemeIds}
               onCompleteProfile={() => navigate("My Profile")}
+              onToggleSave={toggleSavedScheme}
+              onViewScheme={openScheme}
             />
-          ) : (
-            /* OTHER PAGES */
+          )}
+
+          {/* SAVED SCHEMES */}
+          {activePage === "Saved Schemes" && (
+            <SavedSchemes
+              schemes={savedSchemes}
+              onViewScheme={openScheme}
+              onRemove={toggleSavedScheme}
+              onExplore={() => navigate("Find Schemes")}
+            />
+          )}
+
+          {/* APPLICATION TRACKER */}
+          {activePage === "Applications" && (
+            <ApplicationTracker
+              applications={applications}
+              schemes={schemes}
+              onUpdateStatus={updateApplicationStatus}
+              onUpdateNotes={updateApplicationNotes}
+            />
+          )}
+
+          {/* INDIVIDUAL SCHEME DETAILS */}
+          {activePage === "Scheme Details" && selectedScheme && (
+            <SchemeDetails
+              scheme={selectedScheme}
+              result={selectedResult}
+              isSaved={savedSchemeIds.includes(selectedScheme.id)}
+              isTracked={isSelectedSchemeTracked}
+              onBack={() => navigate("Find Schemes")}
+              onToggleSave={() => toggleSavedScheme(selectedScheme.id)}
+              onTrack={() => trackScheme(selectedScheme.id)}
+            />
+          )}
+
+          {/* INVALID OR UNAVAILABLE SCHEME */}
+          {activePage === "Scheme Details" && !selectedScheme && (
             <section className="panel placeholder-panel">
-              <div className="empty-icon">
-                {activePage === "Saved Schemes" ? (
-                  <Bookmark size={25} />
-                ) : (
-                  <FileText size={25} />
-                )}
-              </div>
-
-              <h3>{activePage} is being prepared</h3>
-
-              <p>{descriptions[activePage]}</p>
-
+              <h3>Scheme not found</h3>
+              <p>This scheme does not exist in the current dataset.</p>
               <button
                 className="primary-button"
-                onClick={() => navigate("Overview")}
+                onClick={() => navigate("Find Schemes")}
               >
-                Back to overview
-                <ArrowRight size={16} />
+                Back to schemes <ArrowRight size={16} />
               </button>
             </section>
           )}

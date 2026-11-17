@@ -2,6 +2,7 @@ const STORAGE_KEYS = {
   profile: "schemesearch_ai_profile",
   savedSchemes: "schemesearch_ai_saved_schemes",
   applications: "schemesearch_ai_applications",
+  schemes: "schemesearch_ai_schemes",
 };
 
 export function readStorage<T>(key: string, fallback: T): T {
@@ -25,7 +26,11 @@ export function writeStorage<T>(key: string, value: T): boolean {
 }
 
 export function removeStorage(key: string): void {
-  localStorage.removeItem(key);
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    console.error(`Could not remove local storage: ${key}`);
+  }
 }
 
 export const storage = {
@@ -46,6 +51,12 @@ export const storage = {
 
   saveApplications: <T>(applications: T[]) =>
     writeStorage(STORAGE_KEYS.applications, applications),
+
+  getSchemes: <T>(fallback: T[]) =>
+    readStorage<T[]>(STORAGE_KEYS.schemes, fallback),
+
+  saveSchemes: <T>(schemes: T[]) =>
+    writeStorage(STORAGE_KEYS.schemes, schemes),
 
   clearProfile: () =>
     removeStorage(STORAGE_KEYS.profile),

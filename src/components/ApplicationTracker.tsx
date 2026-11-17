@@ -2,6 +2,7 @@ import {
   FileText,
   Clock3,
   ClipboardList,
+  AlertCircle,
 } from "lucide-react";
 
 import type { Scheme } from "../types/scheme";
@@ -61,8 +62,12 @@ export default function ApplicationTracker({
     active: applications.filter(
       (app) => !["approved", "rejected"].includes(app.status)
     ).length,
-    approved: applications.filter((app) => app.status === "approved").length,
-    submitted: applications.filter((app) => app.status === "submitted").length,
+    approved: applications.filter(
+      (app) => app.status === "approved"
+    ).length,
+    submitted: applications.filter(
+      (app) => app.status === "submitted"
+    ).length,
   };
 
   return (
@@ -86,29 +91,47 @@ export default function ApplicationTracker({
         {applications.map((application) => {
           const scheme = getScheme(application.schemeId);
 
-          if (!scheme) return null;
-
           return (
-            <article className="panel application-card" key={application.id}>
+            <article
+              className="panel application-card"
+              key={application.id}
+            >
               <div className="application-card-heading">
                 <div className="application-icon">
                   <FileText size={21} />
                 </div>
 
                 <div className="application-title">
-                  <h3>{scheme.name}</h3>
-                  <span>{scheme.category}</span>
+                  <h3>
+                    {scheme?.name ?? "Scheme no longer available"}
+                  </h3>
+                  <span>
+                    {scheme?.category ?? "Deleted or unavailable scheme"}
+                  </span>
                 </div>
 
-                <span className={`application-status ${application.status}`}>
+                <span
+                  className={`application-status ${application.status}`}
+                >
                   {statusLabels[application.status]}
                 </span>
               </div>
 
+              {!scheme && (
+                <div className="prototype-warning">
+                  <AlertCircle size={17} />
+                  <span>
+                    This scheme is no longer in your managed dataset.
+                    Your application history and notes are preserved.
+                  </span>
+                </div>
+              )}
+
               <div className="application-meta">
                 <span>
                   <Clock3 size={14} />
-                  Added {new Date(application.createdAt).toLocaleDateString()}
+                  Added{" "}
+                  {new Date(application.createdAt).toLocaleDateString()}
                 </span>
               </div>
 

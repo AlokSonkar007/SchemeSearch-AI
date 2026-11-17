@@ -31,6 +31,8 @@ export default function SchemeDetails({
   onToggleSave,
   onTrack,
 }: Props) {
+  const dataVerified = scheme.dataStatus === "verified";
+
   return (
     <div className="scheme-detail-page">
       <button className="back-link" onClick={onBack}>
@@ -63,7 +65,11 @@ export default function SchemeDetails({
           </button>
 
           <button className="secondary-button" onClick={onToggleSave}>
-            {isSaved ? <BookmarkCheck size={16} /> : <Bookmark size={16} />}
+            {isSaved ? (
+              <BookmarkCheck size={16} />
+            ) : (
+              <Bookmark size={16} />
+            )}
             {isSaved ? "Saved" : "Save scheme"}
           </button>
 
@@ -72,7 +78,7 @@ export default function SchemeDetails({
               className="secondary-button official-link"
               href={scheme.sourceUrl}
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
             >
               Official source <ExternalLink size={14} />
             </a>
@@ -95,33 +101,56 @@ export default function SchemeDetails({
                 <strong>{result.matchScore}%</strong>
                 <span>Profile match score</span>
                 <div className="match-progress">
-                  <div style={{ width: `${result.matchScore}%` }} />
+                  <div
+                    style={{
+                      width: `${result.matchScore}%`,
+                    }}
+                  />
                 </div>
               </div>
 
-              <div className="detail-criteria">
-                {result.criteria.map((item, index) => (
-                  <div className="criteria-row" key={`${scheme.id}-${index}`}>
-                    {item.status === "met" ? (
-                      <CheckCircle2 className="criterion-met" size={17} />
-                    ) : item.status === "not-met" ? (
-                      <XCircle className="criterion-failed" size={17} />
-                    ) : (
-                      <CircleHelp className="criterion-missing" size={17} />
-                    )}
+              {result.criteria.length > 0 ? (
+                <div className="detail-criteria">
+                  {result.criteria.map((item, index) => (
+                    <div
+                      className="criteria-row"
+                      key={`${scheme.id}-${index}`}
+                    >
+                      {item.status === "met" ? (
+                        <CheckCircle2
+                          className="criterion-met"
+                          size={17}
+                        />
+                      ) : item.status === "not-met" ? (
+                        <XCircle
+                          className="criterion-failed"
+                          size={17}
+                        />
+                      ) : (
+                        <CircleHelp
+                          className="criterion-missing"
+                          size={17}
+                        />
+                      )}
 
-                    <span>{item.rule.label}</span>
+                      <span>{item.rule.label}</span>
 
-                    <small>
-                      {item.status === "met"
-                        ? "Met"
-                        : item.status === "not-met"
-                          ? "Not met"
-                          : "Unknown"}
-                    </small>
-                  </div>
-                ))}
-              </div>
+                      <small>
+                        {item.status === "met"
+                          ? "Met"
+                          : item.status === "not-met"
+                            ? "Not met"
+                            : "Unknown"}
+                      </small>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="detail-explanation">
+                  No eligibility criteria have been configured for this
+                  scheme yet.
+                </p>
+              )}
 
               <p className="detail-explanation">
                 {result.status === "potentially-eligible"
@@ -153,18 +182,19 @@ export default function SchemeDetails({
               <span>Category</span>
               <strong>{scheme.category}</strong>
             </div>
+
             <div>
               <span>Data status</span>
               <strong>
-                {scheme.dataStatus === "verified"
-                  ? "Verified"
-                  : "Prototype data"}
+                {dataVerified ? "Verified" : "Prototype data"}
               </strong>
             </div>
+
             <div>
               <span>Criteria recorded</span>
               <strong>{scheme.criteria.length}</strong>
             </div>
+
             <div>
               <span>Mandatory conditions</span>
               <strong>
@@ -173,12 +203,22 @@ export default function SchemeDetails({
             </div>
           </div>
 
-          {scheme.dataStatus === "prototype" && (
+          {!dataVerified && (
             <div className="prototype-warning detail-warning">
               <CircleHelp size={17} />
               <span>
                 This is illustrative test data, not an official government
                 scheme record. Do not use it to make application decisions.
+              </span>
+            </div>
+          )}
+
+          {dataVerified && !scheme.sourceUrl && (
+            <div className="prototype-warning detail-warning">
+              <CircleHelp size={17} />
+              <span>
+                This record is marked verified, but no official source link
+                has been provided. Confirm its details before applying.
               </span>
             </div>
           )}

@@ -11,11 +11,12 @@ import {
 } from "lucide-react";
 
 import type { UserProfile } from "./ProfileWizard";
-import { schemes } from "../data/schemes";
+import type { Scheme } from "../types/scheme";
 import { recommendSchemes } from "../lib/eligibility";
 
 type Props = {
   profile: UserProfile | null;
+  schemes: Scheme[];
   savedSchemeIds: string[];
   onCompleteProfile: () => void;
   onToggleSave: (id: string) => void;
@@ -30,6 +31,7 @@ const statusLabels = {
 
 export default function Recommendations({
   profile,
+  schemes,
   savedSchemeIds,
   onCompleteProfile,
   onToggleSave,
@@ -38,7 +40,9 @@ export default function Recommendations({
   if (!profile) {
     return (
       <section className="panel recommendation-empty">
-        <div className="empty-icon"><Search size={26} /></div>
+        <div className="empty-icon">
+          <Search size={26} />
+        </div>
         <h3>Build your profile first</h3>
         <p>
           We need your personal, financial and educational information
@@ -47,6 +51,21 @@ export default function Recommendations({
         <button className="primary-button" onClick={onCompleteProfile}>
           Complete my profile <ArrowRight size={16} />
         </button>
+      </section>
+    );
+  }
+
+  if (schemes.length === 0) {
+    return (
+      <section className="panel recommendation-empty">
+        <div className="empty-icon">
+          <Search size={26} />
+        </div>
+        <h3>No schemes available</h3>
+        <p>
+          There are currently no schemes to evaluate. Add schemes through
+          the Manage Schemes section.
+        </p>
       </section>
     );
   }
@@ -66,10 +85,10 @@ export default function Recommendations({
       <div className="prototype-warning">
         <ShieldCheck size={18} />
         <div>
-          <strong>Prototype dataset</strong>
+          <strong>Scheme data notice</strong>
           <span>
-            These sample records demonstrate the recommendation engine.
-            They are not verified government scheme eligibility criteria.
+            Scheme records may be illustrative or unverified. Always
+            confirm eligibility and details through official sources.
           </span>
         </div>
       </div>
@@ -92,7 +111,9 @@ export default function Recommendations({
       <div className="results-heading">
         <div>
           <h2>Your scheme matches</h2>
-          <p>Ranked using mandatory eligibility and weighted criteria.</p>
+          <p>
+            Ranked using mandatory eligibility and weighted criteria.
+          </p>
         </div>
         <button className="secondary-button" onClick={onCompleteProfile}>
           Edit profile
@@ -109,12 +130,15 @@ export default function Recommendations({
                 <div className="result-category">
                   {result.scheme.category}
                 </div>
-                {index === 0 && result.status === "potentially-eligible" && (
-                  <span className="top-match">TOP MATCH</span>
-                )}
+
+                {index === 0 &&
+                  result.status === "potentially-eligible" && (
+                    <span className="top-match">TOP MATCH</span>
+                  )}
               </div>
 
               <h3>{result.scheme.name}</h3>
+
               <p className="result-description">
                 {result.scheme.description}
               </p>
@@ -124,6 +148,7 @@ export default function Recommendations({
                   <strong>{result.matchScore}%</strong>
                   <span>Profile match</span>
                 </div>
+
                 <span className={`result-status ${result.status}`}>
                   {statusLabels[result.status]}
                 </span>
@@ -139,15 +164,29 @@ export default function Recommendations({
 
               <div className="criteria-list">
                 {result.criteria.map((item, i) => (
-                  <div className="criteria-row" key={`${result.scheme.id}-${i}`}>
+                  <div
+                    className="criteria-row"
+                    key={`${result.scheme.id}-${i}`}
+                  >
                     {item.status === "met" ? (
-                      <CheckCircle2 size={16} className="criterion-met" />
+                      <CheckCircle2
+                        size={16}
+                        className="criterion-met"
+                      />
                     ) : item.status === "not-met" ? (
-                      <XCircle size={16} className="criterion-failed" />
+                      <XCircle
+                        size={16}
+                        className="criterion-failed"
+                      />
                     ) : (
-                      <CircleHelp size={16} className="criterion-missing" />
+                      <CircleHelp
+                        size={16}
+                        className="criterion-missing"
+                      />
                     )}
+
                     <span>{item.rule.label}</span>
+
                     <small>
                       {item.status === "met"
                         ? "Met"
@@ -165,7 +204,11 @@ export default function Recommendations({
               </div>
 
               <div className="result-footer">
-                <span>Sample record · Not verified</span>
+                <span>
+                  {result.scheme.dataStatus === "verified"
+                    ? "Verified record"
+                    : "Sample record · Not verified"}
+                </span>
               </div>
 
               <div className="recommendation-card-actions">
@@ -177,7 +220,9 @@ export default function Recommendations({
                 </button>
 
                 <button
-                  className={`secondary-button ${saved ? "saved-action" : ""}`}
+                  className={`secondary-button ${
+                    saved ? "saved-action" : ""
+                  }`}
                   onClick={() => onToggleSave(result.scheme.id)}
                 >
                   {saved ? (

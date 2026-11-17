@@ -17,6 +17,7 @@ import {
   Menu,
   X,
   CheckCircle2,
+  FilePlus2,
 } from "lucide-react";
 
 import ProfileWizard, {
@@ -27,10 +28,13 @@ import Recommendations from "./components/Recommendations";
 import SavedSchemes from "./components/SavedSchemes";
 import SchemeDetails from "./components/SchemeDetails";
 import ApplicationTracker from "./components/ApplicationTracker";
+import SchemeManager from "./components/SchemeManager";
 
 import { schemes } from "./data/schemes";
 import { recommendSchemes, evaluateScheme } from "./lib/eligibility";
 import { storage } from "./lib/storage";
+
+import type { Scheme } from "./types/scheme";
 
 import type {
   ApplicationStatus,
@@ -43,7 +47,8 @@ type Page =
   | "My Profile"
   | "Saved Schemes"
   | "Applications"
-  | "Scheme Details";
+  | "Scheme Details"
+  | "Manage Schemes";
 
 const navigation: {
   label: Exclude<Page, "Scheme Details">;
@@ -54,50 +59,74 @@ const navigation: {
   { label: "My Profile", icon: UserRound },
   { label: "Saved Schemes", icon: Bookmark },
   { label: "Applications", icon: FileText },
+  { label: "Manage Schemes", icon: FilePlus2 },
 ];
 
 function App() {
   const [activePage, setActivePage] = useState<Page>("Overview");
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  // User profile
   const [profile, setProfile] = useState<UserProfile | null>(
     () => storage.getProfile<UserProfile>()
   );
 
+  // Dynamically managed scheme collection
+  const [managedSchemes, setManagedSchemes] = useState<Scheme[]>(
+    () => storage.getSchemes<Scheme>(schemes)
+  );
+
+  // Saved schemes
   const [savedSchemeIds, setSavedSchemeIds] = useState<string[]>(
     () => storage.getSavedSchemes()
   );
 
+  // Application tracker
   const [applications, setApplications] = useState<SchemeApplication[]>(
     () => storage.getApplications<SchemeApplication>()
   );
 
+  // Selected scheme
   const [selectedSchemeId, setSelectedSchemeId] = useState<string | null>(
     null
   );
 
+  // Page descriptions
   const descriptions: Record<Page, string> = {
-    Overview: "Your personalized government scheme discovery space.",
+    Overview:
+      "Your personalized government scheme discovery space.",
+
     "Find Schemes":
       "Discover government opportunities relevant to your profile.",
+
     "My Profile":
       "Your information helps us identify relevant schemes.",
+
     "Saved Schemes":
       "Keep track of opportunities you want to explore.",
+
     Applications:
       "Track your scheme application progress.",
+
     "Scheme Details":
       "Explore scheme information and your eligibility assessment.",
+
+    "Manage Schemes":
+      "Manage scheme records, eligibility rules and verification information.",
   };
 
+  // Navigation
   const navigate = (page: Page) => {
     setActivePage(page);
     setMobileOpen(false);
   };
 
-  // Calculate recommendations.
+  // ==========================================
+  // ELIGIBILITY AND RECOMMENDATIONS
+  // ==========================================
+
   const results = profile
-    ? recommendSchemes(profile, schemes)
+    ? recommendSchemes(profile, managedSchemes)
     : [];
 
   const potentialMatches = results.filter(
@@ -112,8 +141,11 @@ function App() {
     .filter((result) => result.status !== "not-eligible")
     .slice(0, 2);
 
-  // Saved schemes.
-  const savedSchemes = schemes.filter((scheme) =>
+  // ==========================================
+  // SAVED SCHEMES
+  // ==========================================
+
+  const savedSchemes = managedSchemes.filter((scheme) =>
     savedSchemeIds.includes(scheme.id)
   );
 
@@ -122,12 +154,97 @@ function App() {
       ? savedSchemeIds.filter((savedId) => savedId !== id)
       : [...savedSchemeIds, id];
 
-    storage.saveSavedSchemes(updated);
+    const success = storage.saveSavedSchemes(updated);
+
+    if (!success) {
+      window.alert("Could not update your saved schemes. Please try again.");
+      return;
+    }
+
     setSavedSchemeIds(updated);
   };
 
-  // Scheme details.
-  const selectedScheme = schemes.find(
+  // ==========================================
+  // SCHEME MANAGEMENT
+  // ==========================================
+
+  const saveManagedScheme = (scheme: Scheme) => {
+    const exists = managedSchemes.some(
+      (item) => item.id === scheme.id
+    );
+
+    const updated = exists
+      ? managedSchemes.map((item) =>
+          item.id === scheme.id ? scheme : item
+        )
+      : [...managedSchemes, scheme];
+
+    const success = storage.saveSchemes(updated);
+
+    if (!success) {
+      window.alert(
+        "Could not save the scheme. Please check your browser storage."
+      );
+      return;
+    }
+
+    setManagedSchemes(updated);
+  };
+
+  const deleteManagedScheme = (id: string) => {
+    const linkedApplications = applications.filter(
+      (application) => application.schemeId === id
+    );
+
+    const isSaved = savedSchemeIds.includes(id);
+
+    if (isSaved || linkedApplications.length > 0) {
+      const confirmed = window.confirm(
+        `This scheme has ${
+          isSaved ? "a saved bookmark" : "no saved bookmark"
+        } and ${linkedApplications.length} tracked application record(s).\n\n` +
+          "Deleting it will remove the scheme and its saved bookmark, " +
+          "but your application-tracking history will be preserved. " +
+          "The scheme will appear as unavailable in your tracker. Continue?"
+      );
+
+      if (!confirmed) return;
+    }
+
+    const updatedSchemes = managedSchemes.filter(
+      (scheme) => scheme.id !== id
+    );
+
+    const updatedSavedIds = savedSchemeIds.filter(
+      (savedId) => savedId !== id
+    );
+
+    if (!storage.saveSchemes(updatedSchemes)) {
+      window.alert("Could not delete the scheme. Please try again.");
+      return;
+    }
+
+    if (!storage.saveSavedSchemes(updatedSavedIds)) {
+      storage.saveSchemes(managedSchemes);
+      window.alert(
+        "Could not update saved schemes. Changes were rolled back."
+      );
+      return;
+    }
+
+    setManagedSchemes(updatedSchemes);
+    setSavedSchemeIds(updatedSavedIds);
+
+    if (selectedSchemeId === id) {
+      setSelectedSchemeId(null);
+    }
+  };
+
+  // ==========================================
+  // SCHEME DETAILS
+  // ==========================================
+
+  const selectedScheme = managedSchemes.find(
     (scheme) => scheme.id === selectedSchemeId
   );
 
@@ -145,13 +262,16 @@ function App() {
     navigate("Scheme Details");
   };
 
-  // Application tracking.
+  // ==========================================
+  // APPLICATION TRACKING
+  // ==========================================
+
   const trackScheme = (schemeId: string) => {
-    const existing = applications.some(
+    const exists = applications.some(
       (application) => application.schemeId === schemeId
     );
 
-    if (existing) {
+    if (exists) {
       navigate("Applications");
       return;
     }
@@ -169,7 +289,11 @@ function App() {
 
     const updated = [...applications, newApplication];
 
-    storage.saveApplications(updated);
+    if (!storage.saveApplications(updated)) {
+      window.alert("Could not track this scheme. Please try again.");
+      return;
+    }
+
     setApplications(updated);
     navigate("Applications");
   };
@@ -188,7 +312,11 @@ function App() {
         : application
     );
 
-    storage.saveApplications(updated);
+    if (!storage.saveApplications(updated)) {
+      window.alert("Could not update application status.");
+      return;
+    }
+
     setApplications(updated);
   };
 
@@ -203,12 +331,22 @@ function App() {
         : application
     );
 
-    storage.saveApplications(updated);
+    if (!storage.saveApplications(updated)) {
+      window.alert("Could not save application notes.");
+      return;
+    }
+
     setApplications(updated);
   };
 
+  // ==========================================
+  // APPLICATION UI
+  // ==========================================
+
   return (
     <div className="app-shell">
+
+      {/* MOBILE OVERLAY */}
       {mobileOpen && (
         <button
           className="mobile-overlay"
@@ -219,6 +357,7 @@ function App() {
 
       {/* SIDEBAR */}
       <aside className={`sidebar ${mobileOpen ? "sidebar-open" : ""}`}>
+
         <div className="brand">
           <div className="brand-icon">
             <Landmark size={23} />
@@ -260,6 +399,7 @@ function App() {
         </nav>
 
         <div className="sidebar-bottom">
+
           <div className="sidebar-help">
             <CircleHelp size={19} />
             <div>
@@ -282,12 +422,16 @@ function App() {
 
             <ChevronDown size={16} />
           </div>
+
         </div>
       </aside>
 
       {/* MAIN APPLICATION */}
       <main className="main-area">
+
+        {/* TOPBAR */}
         <header className="topbar">
+
           <button
             className="mobile-menu"
             aria-label="Open navigation"
@@ -302,6 +446,7 @@ function App() {
           </div>
 
           <div className="topbar-actions">
+
             <div className="location-tag">
               <MapPin size={15} />
               India
@@ -315,12 +460,15 @@ function App() {
             </button>
 
             <div className="top-avatar">G</div>
+
           </div>
         </header>
 
         <div className="page-container">
+
           {/* PAGE HEADING */}
           <div className="page-heading">
+
             <div>
               <div className="eyebrow">
                 SCHEMESEARCH AI / WORKSPACE
@@ -339,18 +487,28 @@ function App() {
               <span className="page-status">
                 {activePage === "Find Schemes"
                   ? "Eligibility discovery"
-                  : profile
-                    ? "Profile completed"
-                    : "Getting started"}
+                  : activePage === "Manage Schemes"
+                    ? "Prototype administration"
+                    : profile
+                      ? "Profile completed"
+                      : "Getting started"}
               </span>
             )}
+
           </div>
 
+          {/* ================================== */}
           {/* OVERVIEW */}
+          {/* ================================== */}
+
           {activePage === "Overview" && (
             <>
+
+              {/* HERO */}
               <section className="hero-banner">
+
                 <div className="hero-content">
+
                   <div className="hero-tag">
                     <Sparkles size={14} />
                     YOUR OPPORTUNITY STARTS HERE
@@ -377,9 +535,11 @@ function App() {
                       : "Build my profile"}
                     <ArrowRight size={17} />
                   </button>
+
                 </div>
 
                 <div className="hero-art">
+
                   <div className="hero-art-circle">
                     <Landmark size={78} strokeWidth={1.1} />
                   </div>
@@ -391,11 +551,13 @@ function App() {
                       <span>Every result explained</span>
                     </div>
                   </div>
+
                 </div>
               </section>
 
               {/* STATISTICS */}
               <section className="stats-grid">
+
                 <div className="stat-card">
                   <div className="stat-icon blue">
                     <UserRound size={20} />
@@ -453,12 +615,16 @@ function App() {
                     Your saved schemes will appear here
                   </div>
                 </div>
+
               </section>
 
               {/* DASHBOARD CONTENT */}
               <div className="content-grid">
+
                 <section className="panel recommendations-panel">
+
                   <div className="panel-heading">
+
                     <div>
                       <h3>Recommended for you</h3>
                       <p>
@@ -472,10 +638,13 @@ function App() {
                     >
                       Explore <ArrowRight size={15} />
                     </button>
+
                   </div>
 
                   {!profile ? (
+
                     <div className="empty-state">
+
                       <div className="empty-icon">
                         <Search size={25} />
                       </div>
@@ -494,14 +663,20 @@ function App() {
                         Complete profile
                         <ArrowRight size={15} />
                       </button>
+
                     </div>
+
                   ) : dashboardRecommendations.length > 0 ? (
+
                     <div className="scheme-results">
+
                       {dashboardRecommendations.map((result) => (
+
                         <article
                           className="scheme-result-card"
                           key={result.scheme.id}
                         >
+
                           <div className="result-top">
                             <div className="result-category">
                               {result.scheme.category}
@@ -511,6 +686,7 @@ function App() {
                           <h3>{result.scheme.name}</h3>
 
                           <div className="result-score-row">
+
                             <div>
                               <strong>{result.matchScore}%</strong>
                               <span>Profile match</span>
@@ -523,6 +699,7 @@ function App() {
                                 ? "Potential match"
                                 : "Needs information"}
                             </span>
+
                           </div>
 
                           <div className="match-progress">
@@ -539,11 +716,17 @@ function App() {
                           >
                             View details <ArrowRight size={15} />
                           </button>
+
                         </article>
+
                       ))}
+
                     </div>
+
                   ) : (
+
                     <div className="empty-state">
+
                       <div className="empty-icon">
                         <Search size={25} />
                       </div>
@@ -552,7 +735,7 @@ function App() {
 
                       <p>
                         Your current profile does not satisfy the
-                        mandatory conditions in our prototype records.
+                        mandatory conditions in our scheme records.
                       </p>
 
                       <button
@@ -562,11 +745,16 @@ function App() {
                         View assessment
                         <ArrowRight size={15} />
                       </button>
+
                     </div>
+
                   )}
+
                 </section>
 
+                {/* JOURNEY PANEL */}
                 <section className="panel progress-panel">
+
                   <div className="panel-heading">
                     <div>
                       <h3>Getting started</h3>
@@ -577,7 +765,9 @@ function App() {
                   </div>
 
                   <div className="journey-list">
+
                     <div className="journey-item">
+
                       <div
                         className={`journey-marker ${
                           profile ? "" : "current"
@@ -596,9 +786,11 @@ function App() {
                       </div>
 
                       <span className="step-label">01</span>
+
                     </div>
 
                     <div className="journey-item">
+
                       <div
                         className={`journey-marker ${
                           profile ? "current" : ""
@@ -617,9 +809,11 @@ function App() {
                       </div>
 
                       <span className="step-label">02</span>
+
                     </div>
 
                     <div className="journey-item">
+
                       <div className="journey-marker">
                         <Sparkles size={16} />
                       </div>
@@ -632,7 +826,9 @@ function App() {
                       </div>
 
                       <span className="step-label">03</span>
+
                     </div>
+
                   </div>
 
                   <button
@@ -646,9 +842,12 @@ function App() {
                       : "Start your journey"}
                     <ArrowRight size={16} />
                   </button>
+
                 </section>
+
               </div>
 
+              {/* TRUST NOTE */}
               <div className="trust-note">
                 <ShieldCheck size={17} />
                 <span>
@@ -657,25 +856,39 @@ function App() {
                   authorities.
                 </span>
               </div>
+
             </>
           )}
 
+          {/* ================================== */}
           {/* PROFILE PAGE */}
+          {/* ================================== */}
+
           {activePage === "My Profile" && (
             <ProfileWizard
               initialProfile={profile}
               onSave={(savedProfile) => {
-                storage.saveProfile(savedProfile);
+                const success = storage.saveProfile(savedProfile);
+
+                if (!success) {
+                  window.alert("Could not save your profile. Please try again.");
+                  return;
+                }
+
                 setProfile(savedProfile);
                 navigate("Overview");
               }}
             />
           )}
 
+          {/* ================================== */}
           {/* FIND SCHEMES */}
+          {/* ================================== */}
+
           {activePage === "Find Schemes" && (
             <Recommendations
               profile={profile}
+              schemes={managedSchemes}
               savedSchemeIds={savedSchemeIds}
               onCompleteProfile={() => navigate("My Profile")}
               onToggleSave={toggleSavedScheme}
@@ -683,7 +896,10 @@ function App() {
             />
           )}
 
+          {/* ================================== */}
           {/* SAVED SCHEMES */}
+          {/* ================================== */}
+
           {activePage === "Saved Schemes" && (
             <SavedSchemes
               schemes={savedSchemes}
@@ -693,17 +909,23 @@ function App() {
             />
           )}
 
+          {/* ================================== */}
           {/* APPLICATION TRACKER */}
+          {/* ================================== */}
+
           {activePage === "Applications" && (
             <ApplicationTracker
               applications={applications}
-              schemes={schemes}
+              schemes={managedSchemes}
               onUpdateStatus={updateApplicationStatus}
               onUpdateNotes={updateApplicationNotes}
             />
           )}
 
-          {/* INDIVIDUAL SCHEME DETAILS */}
+          {/* ================================== */}
+          {/* SCHEME DETAILS */}
+          {/* ================================== */}
+
           {activePage === "Scheme Details" && selectedScheme && (
             <SchemeDetails
               scheme={selectedScheme}
@@ -716,11 +938,14 @@ function App() {
             />
           )}
 
-          {/* INVALID OR UNAVAILABLE SCHEME */}
+          {/* SCHEME NOT FOUND */}
           {activePage === "Scheme Details" && !selectedScheme && (
             <section className="panel placeholder-panel">
               <h3>Scheme not found</h3>
-              <p>This scheme does not exist in the current dataset.</p>
+              <p>
+                This scheme does not exist in the current dataset.
+              </p>
+
               <button
                 className="primary-button"
                 onClick={() => navigate("Find Schemes")}
@@ -729,6 +954,19 @@ function App() {
               </button>
             </section>
           )}
+
+          {/* ================================== */}
+          {/* SCHEME MANAGER */}
+          {/* ================================== */}
+
+          {activePage === "Manage Schemes" && (
+            <SchemeManager
+              schemes={managedSchemes}
+              onSave={saveManagedScheme}
+              onDelete={deleteManagedScheme}
+            />
+          )}
+
         </div>
       </main>
     </div>

@@ -1,4 +1,4 @@
-import { Bookmark, Eye, Trash2, Search } from "lucide-react";
+import { Bookmark, Eye, Trash2, Search, ShieldCheck } from "lucide-react";
 import type { Scheme } from "../types/scheme";
 
 type Props = {
@@ -46,8 +46,18 @@ export default function SavedSchemes({
         {schemes.map((scheme) => (
           <article className="saved-card" key={scheme.id}>
             <div className="result-category">{scheme.category}</div>
+
             <h3>{scheme.name}</h3>
             <p>{scheme.description}</p>
+
+            <div className="result-footer">
+              <span>
+                <ShieldCheck size={14} />
+                {scheme.dataStatus === "verified"
+                  ? "Verified record"
+                  : "Sample record · Not verified"}
+              </span>
+            </div>
 
             <div className="saved-card-footer">
               <button

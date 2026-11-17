@@ -25,6 +25,7 @@ export type Scheme = {
   criteria: EligibilityRule[];
   dataStatus: "prototype" | "verified";
   sourceUrl: string | null;
+  lastVerifiedAt?: string | null;
 };
 
 export type CriterionResult = {

@@ -26,6 +26,7 @@ import ProfileWizard, {
 import Recommendations from "./components/Recommendations";
 import { schemes } from "./data/schemes";
 import { recommendSchemes } from "./lib/eligibility";
+import { storage } from "./lib/storage";
 
 type Page =
   | "Overview"
@@ -45,7 +46,9 @@ const navigation: { label: Page; icon: typeof LayoutDashboard }[] = [
 function App() {
   const [activePage, setActivePage] = useState<Page>("Overview");
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(
+  () => storage.getProfile<UserProfile>()
+  );
 
   const descriptions: Record<Page, string> = {
     Overview: "Your personalized government scheme discovery space.",
@@ -550,6 +553,7 @@ function App() {
             <ProfileWizard
               initialProfile={profile}
               onSave={(savedProfile) => {
+                storage.saveProfile(savedProfile);
                 setProfile(savedProfile);
                 navigate("Overview");
               }}

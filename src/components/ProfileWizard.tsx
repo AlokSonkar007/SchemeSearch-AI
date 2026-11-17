@@ -57,6 +57,22 @@ export type UserProfile = {
 
   // PM-DAKSH details
   dakshTargetGroup: string;
+
+  // Additional household and beneficiary details
+  maritalStatus: string;
+  disabilityStatus: string;
+  disabilityPercentage: string;
+  householdSize: string;
+  beneficiaryRelationship: string;
+  beneficiaryAge: string;
+  beneficiaryGender: string;
+
+  // Farmer, accident-claim and artisan details
+  farmerRelationship: string;
+  accidentClaimType: string;
+  artisanTrade: string;
+  receivedToolkitBefore: string;
+  selfHelpGroupMember: string;
 };
 
 type District = {
@@ -118,6 +134,19 @@ const emptyProfile: UserProfile = {
   pmKmyExclusion: "",
 
   dakshTargetGroup: "",
+
+  maritalStatus: "",
+  disabilityStatus: "",
+  disabilityPercentage: "",
+  householdSize: "",
+  beneficiaryRelationship: "Self",
+  beneficiaryAge: "",
+  beneficiaryGender: "",
+  farmerRelationship: "",
+  accidentClaimType: "",
+  artisanTrade: "",
+  receivedToolkitBefore: "",
+  selfHelpGroupMember: "",
 };
 
 const steps = [
@@ -139,6 +168,12 @@ const steps = [
     description:
       "Tell us about your current situation and the support that matters most to you.",
   },
+  {
+    label: "Additional details",
+    heading: "A little more about your circumstances.",
+    description:
+      "These optional details help us narrow down family, social-security, farmer and livelihood schemes.",
+  },
 ];
 
 const yesNoOptions = ["Yes", "No", "Not sure"];
@@ -147,9 +182,21 @@ export default function ProfileWizard({
   initialProfile,
   onSave,
 }: Props) {
-  const [profile, setProfile] = useState<UserProfile>({
-    ...emptyProfile,
-    ...(initialProfile ?? {}),
+  const [profile, setProfile] = useState<UserProfile>(() => {
+    const restored = {
+      ...emptyProfile,
+      ...(initialProfile ?? {}),
+    };
+
+    restored.beneficiaryRelationship =
+      restored.beneficiaryRelationship || "Self";
+
+    if (restored.beneficiaryRelationship === "Self") {
+      restored.beneficiaryAge = restored.beneficiaryAge || restored.age;
+      restored.beneficiaryGender = restored.beneficiaryGender || restored.gender;
+    }
+
+    return restored;
   });
 
   const [step, setStep] = useState(0);
@@ -166,6 +213,23 @@ export default function ProfileWizard({
       ...previous,
       [key]: value,
       ...(key === "state" ? { district: "" } : {}),
+      ...(key === "age" && previous.beneficiaryRelationship === "Self"
+        ? { beneficiaryAge: value }
+        : {}),
+      ...(key === "gender" && previous.beneficiaryRelationship === "Self"
+        ? { beneficiaryGender: value }
+        : {}),
+      ...(key === "beneficiaryRelationship"
+        ? value === "Self"
+          ? {
+              beneficiaryAge: previous.age,
+              beneficiaryGender: previous.gender,
+            }
+          : {
+              beneficiaryAge: "",
+              beneficiaryGender: "",
+            }
+        : {}),
     }));
   };
 
@@ -191,11 +255,16 @@ export default function ProfileWizard({
       );
     }
 
-    return profile.occupation !== "" && profile.primaryGoal !== "";
+    if (step === 2) {
+      return profile.occupation !== "" && profile.primaryGoal !== "";
+    }
+
+    // The additional-information step is deliberately optional.
+    return true;
   };
 
   const next = () => {
-    if (step < 2 && canContinue()) {
+    if (step < steps.length - 1 && canContinue()) {
       setStep((current) => current + 1);
     }
   };
@@ -280,6 +349,15 @@ export default function ProfileWizard({
   const wantsEmployment =
     profile.primaryGoal === "Employment & Skill Development";
 
+  const wantsSHGSupport = [
+    "Business & Entrepreneurship",
+    "Women Empowerment",
+    "Social Welfare",
+  ].includes(profile.primaryGoal);
+
+  const showUPArtisanDetails =
+    profile.state === "Uttar Pradesh" && (wantsEmployment || wantsBusiness);
+
   return (
     <div className="profile-v3-wrapper">
       <div className="profile-v3-container">
@@ -302,7 +380,7 @@ export default function ProfileWizard({
         <div className="profile-v3-main">
           <div className="profile-v3-intro">
             <div className="profile-v3-kicker">
-              PROFILE SETUP <span>·</span> STEP {step + 1} OF 3
+              PROFILE SETUP <span>·</span> STEP {step + 1} OF {steps.length}
             </div>
 
             <h2>{current.heading}</h2>
@@ -312,7 +390,7 @@ export default function ProfileWizard({
           <div className="profile-v3-progress">
             <div
               className="profile-v3-progress-fill"
-              style={{ width: `${((step + 1) / 3) * 100}%` }}
+              style={{ width: `${((step + 1) / steps.length) * 100}%` }}
             />
           </div>
 
@@ -909,6 +987,201 @@ export default function ProfileWizard({
                 </div>
               </>
             )}
+
+            {step === 3 && (
+              <>
+                <div className="profile-v3-section-label">
+                  FAMILY & PERSONAL CIRCUMSTANCES
+                </div>
+
+                <p className="profile-v3-helper">
+                  These answers are optional. Choose "Not sure" whenever you do not know an answer.
+                </p>
+
+                <div className="profile-v3-grid">
+                  {field(
+                    "Marital status",
+                    selectOptions(
+                      ["Single", "Married", "Widowed", "Divorced", "Separated", "Not sure"],
+                      profile.maritalStatus,
+                      (value) => update("maritalStatus", value),
+                      "Select marital status"
+                    )
+                  )}
+
+                  {field(
+                    "Do you have a disability?",
+                    choiceGroup(
+                      yesNoOptions,
+                      profile.disabilityStatus,
+                      (value) => update("disabilityStatus", value)
+                    )
+                  )}
+
+                  {profile.disabilityStatus === "Yes" &&
+                    field(
+                      "Disability percentage (if known)",
+                      <input
+                        className={inputClass}
+                        type="number"
+                        min="0"
+                        max="100"
+                        placeholder="Enter percentage"
+                        value={profile.disabilityPercentage}
+                        onChange={(e) => update("disabilityPercentage", e.target.value)}
+                      />
+                    )}
+
+                  {field(
+                    "Approximate household size",
+                    <input
+                      className={inputClass}
+                      type="number"
+                      min="1"
+                      max="50"
+                      placeholder="Number of family members"
+                      value={profile.householdSize}
+                      onChange={(e) => update("householdSize", e.target.value)}
+                    />
+                  )}
+                </div>
+
+                <div className="profile-v3-section-label profile-v3-section-spaced">
+                  BENEFICIARY DETAILS
+                </div>
+
+                <p className="profile-v3-helper">
+                  You can search for yourself or for a dependent family member. When you choose yourself, age and gender are copied from your main profile.
+                </p>
+
+                <div className="profile-v3-grid">
+                  {field(
+                    "Who is the person seeking the benefit?",
+                    selectOptions(
+                      ["Self", "Daughter / Son", "Spouse", "Parent", "Other dependent"],
+                      profile.beneficiaryRelationship,
+                      (value) => update("beneficiaryRelationship", value),
+                      "Select relationship"
+                    ),
+                    true
+                  )}
+
+                  {profile.beneficiaryRelationship !== "Self" && (
+                    <>
+                      {field(
+                        "Beneficiary age",
+                        <input
+                          className={inputClass}
+                          type="number"
+                          min="0"
+                          max="120"
+                          placeholder="Enter beneficiary age"
+                          value={profile.beneficiaryAge}
+                          onChange={(e) => update("beneficiaryAge", e.target.value)}
+                        />
+                      )}
+
+                      {field(
+                        "Beneficiary gender",
+                        choiceGroup(
+                          ["Male", "Female", "Other"],
+                          profile.beneficiaryGender,
+                          (value) => update("beneficiaryGender", value)
+                        )
+                      )}
+                    </>
+                  )}
+                </div>
+
+                {(isFarmer || wantsAgriculture) && (
+                  <>
+                    <div className="profile-v3-section-label profile-v3-section-spaced">
+                      FARMER & ACCIDENT-CLAIM DETAILS
+                    </div>
+
+                    <div className="profile-v3-grid">
+                      {field(
+                        "Relationship to the farmer",
+                        selectOptions(
+                          ["Self", "Parent", "Spouse", "Child", "Other eligible family member"],
+                          profile.farmerRelationship,
+                          (value) => update("farmerRelationship", value),
+                          "Select relationship"
+                        ),
+                        true
+                      )}
+
+                      {field(
+                        "What is the claim related to?",
+                        selectOptions(
+                          ["Accidental death", "Permanent disability", "Specified disability", "Not applicable / Not sure"],
+                          profile.accidentClaimType,
+                          (value) => update("accidentClaimType", value),
+                          "Select claim type"
+                        ),
+                        true
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {showUPArtisanDetails && (
+                  <>
+                    <div className="profile-v3-section-label profile-v3-section-spaced">
+                      ARTISAN & LIVELIHOOD DETAILS
+                    </div>
+
+                    <div className="profile-v3-grid">
+                      {field(
+                        "Which trade or craft best describes your work?",
+                        selectOptions(
+                          ["Carpenter", "Blacksmith", "Cobbler", "Tailor", "Barber", "Mason", "Potter", "Goldsmith", "Basket maker", "Weaver", "Other"],
+                          profile.artisanTrade,
+                          (value) => update("artisanTrade", value),
+                          "Select trade"
+                        ),
+                        true
+                      )}
+
+                      {field(
+                        "Have you previously received a government toolkit under an artisan or skill scheme?",
+                        choiceGroup(
+                          yesNoOptions,
+                          profile.receivedToolkitBefore,
+                          (value) => update("receivedToolkitBefore", value)
+                        ),
+                        true
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {wantsSHGSupport && (
+                  <>
+                    <div className="profile-v3-section-label profile-v3-section-spaced">
+                      COMMUNITY & GROUP SUPPORT
+                    </div>
+
+                    {field(
+                      "Are you a member of a Self-Help Group (SHG)?",
+                      choiceGroup(
+                        yesNoOptions,
+                        profile.selfHelpGroupMember,
+                        (value) => update("selfHelpGroupMember", value)
+                      ),
+                      true
+                    )}
+                  </>
+                )}
+
+                <div className="profile-v3-note">
+                  <CheckCircle2 size={17} />
+                  <span>
+                    You can save your profile without answering these optional questions and update them later.
+                  </span>
+                </div>
+              </>
+            )}
           </div>
 
           <div className="profile-v3-footer">
@@ -924,10 +1197,10 @@ export default function ProfileWizard({
 
             <div className="profile-v3-footer-right">
               <span className="profile-v3-required">
-                {step + 1} / 3
+                {step + 1} / {steps.length}
               </span>
 
-              {step < 2 ? (
+              {step < steps.length - 1 ? (
                 <button
                   type="button"
                   className="profile-v3-next"

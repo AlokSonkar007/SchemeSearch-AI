@@ -18,6 +18,9 @@ import {
   X,
   CheckCircle2,
   FilePlus2,
+  ClipboardCheck,
+  GitCompareArrows,
+  BadgeCheck,
 } from "lucide-react";
 
 import ProfileWizard, {
@@ -29,6 +32,9 @@ import SavedSchemes from "./components/SavedSchemes";
 import SchemeDetails from "./components/SchemeDetails";
 import ApplicationTracker from "./components/ApplicationTracker";
 import SchemeManager from "./components/SchemeManager";
+import DocumentReadinessChecker from "./components/DocumentReadinessChecker";
+import SchemeComparison from "./components/SchemeComparison";
+import SourceVerification from "./components/SourceVerification";
 
 import { schemes } from "./data/schemes";
 import { recommendSchemes, evaluateScheme } from "./lib/eligibility";
@@ -47,6 +53,9 @@ type Page =
   | "My Profile"
   | "Saved Schemes"
   | "Applications"
+  | "Document Readiness"
+  | "Compare Schemes"
+  | "Source Verification"
   | "Scheme Details"
   | "Manage Schemes";
 
@@ -59,6 +68,9 @@ const navigation: {
   { label: "My Profile", icon: UserRound },
   { label: "Saved Schemes", icon: Bookmark },
   { label: "Applications", icon: FileText },
+  { label: "Document Readiness", icon: ClipboardCheck },
+  { label: "Compare Schemes", icon: GitCompareArrows },
+  { label: "Source Verification", icon: BadgeCheck },
   { label: "Manage Schemes", icon: FilePlus2 },
 ];
 
@@ -107,6 +119,15 @@ function App() {
 
     Applications:
       "Track your scheme application progress.",
+
+    "Document Readiness":
+      "Prepare the documents you may need before applying.",
+
+    "Compare Schemes":
+      "Compare scheme benefits and profile alignment side by side.",
+
+    "Source Verification":
+      "Review scheme references and keep track of source checks.",
 
     "Scheme Details":
       "Explore scheme information and your eligibility assessment.",
@@ -954,6 +975,13 @@ function App() {
               </button>
             </section>
           )}
+
+          {/* PHASE 1 FEATURES */}
+          {activePage === "Document Readiness" && <DocumentReadinessChecker schemes={managedSchemes} />}
+          {activePage === "Compare Schemes" && (
+            <SchemeComparison profile={profile} schemes={managedSchemes} onViewScheme={openScheme} />
+          )}
+          {activePage === "Source Verification" && <SourceVerification schemes={managedSchemes} />}
 
           {/* ================================== */}
           {/* SCHEME MANAGER */}

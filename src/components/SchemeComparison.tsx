@@ -17,11 +17,15 @@ export default function SchemeComparison({ profile, schemes, onViewScheme }: Pro
 
   const toggleScheme = (id: string) => {
     setMessage("");
-    setSelectedIds((current) => {
-      if (current.includes(id)) return current.filter((item) => item !== id);
-      if (current.length >= 3) { setMessage("You can compare up to 3 schemes at a time."); return current; }
-      return [...current, id];
-    });
+    if (selectedIds.includes(id)) {
+      setSelectedIds(selectedIds.filter((item) => item !== id));
+      return;
+    }
+    if (selectedIds.length >= 3) {
+      setMessage("You can compare up to 3 schemes at a time.");
+      return;
+    }
+    setSelectedIds([...selectedIds, id]);
   };
 
   return <div className="feature-page">

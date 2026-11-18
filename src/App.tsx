@@ -21,6 +21,8 @@ import {
   ClipboardCheck,
   GitCompareArrows,
   BadgeCheck,
+  Bot,
+  Calculator,
 } from "lucide-react";
 
 import ProfileWizard, {
@@ -35,6 +37,8 @@ import SchemeManager from "./components/SchemeManager";
 import DocumentReadinessChecker from "./components/DocumentReadinessChecker";
 import SchemeComparison from "./components/SchemeComparison";
 import SourceVerification from "./components/SourceVerification";
+import AISchemeAssistant from "./components/AISchemeAssistant";
+import BenefitCalculator from "./components/BenefitCalculator";
 
 import { schemes } from "./data/schemes";
 import { recommendSchemes, evaluateScheme } from "./lib/eligibility";
@@ -56,6 +60,8 @@ type Page =
   | "Document Readiness"
   | "Compare Schemes"
   | "Source Verification"
+  | "AI Scheme Assistant"
+  | "Benefit Calculator"
   | "Scheme Details"
   | "Manage Schemes";
 
@@ -71,6 +77,8 @@ const navigation: {
   { label: "Document Readiness", icon: ClipboardCheck },
   { label: "Compare Schemes", icon: GitCompareArrows },
   { label: "Source Verification", icon: BadgeCheck },
+  { label: "AI Scheme Assistant", icon: Bot },
+  { label: "Benefit Calculator", icon: Calculator },
   { label: "Manage Schemes", icon: FilePlus2 },
 ];
 
@@ -128,6 +136,12 @@ function App() {
 
     "Source Verification":
       "Review scheme references and keep track of source checks.",
+
+    "AI Scheme Assistant":
+      "Ask questions about schemes using the current catalogue and your profile.",
+
+    "Benefit Calculator":
+      "Explore illustrative benefit scenarios using listed figures.",
 
     "Scheme Details":
       "Explore scheme information and your eligibility assessment.",
@@ -982,6 +996,14 @@ function App() {
             <SchemeComparison profile={profile} schemes={managedSchemes} onViewScheme={openScheme} />
           )}
           {activePage === "Source Verification" && <SourceVerification schemes={managedSchemes} />}
+
+          {/* PHASE 2 FEATURES */}
+          {activePage === "AI Scheme Assistant" && (
+            <AISchemeAssistant profile={profile} schemes={managedSchemes} onViewScheme={openScheme} />
+          )}
+          {activePage === "Benefit Calculator" && (
+            <BenefitCalculator profile={profile} schemes={managedSchemes} />
+          )}
 
           {/* ================================== */}
           {/* SCHEME MANAGER */}

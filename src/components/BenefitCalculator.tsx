@@ -25,7 +25,7 @@ export default function BenefitCalculator({ profile, schemes }: Props) {
   const [percentage, setPercentage] = useState(50);
   const [dailyWage, setDailyWage] = useState("300");
   const [days, setDays] = useState("100");
-  const [months, setMonths] = useState("12");
+  const [months, setMonths] = useState("3");
   const selectedScheme = schemes.find((scheme) => scheme.id === selectedId) ?? schemes[0];
   const isMgnrega = Boolean(selectedScheme && /mgnrega|national rural employment guarantee/i.test(selectedScheme.name));
   const isPmKisan = Boolean(selectedScheme && /pm.?kisan/i.test(selectedScheme.name));
@@ -43,7 +43,7 @@ export default function BenefitCalculator({ profile, schemes }: Props) {
     <section className="feature-hero"><div className="feature-hero-icon"><Calculator size={25} /></div><div><span className="feature-eyebrow">ILLUSTRATIVE ESTIMATOR</span><h2>Benefit Calculator</h2><p>Explore an indicative amount using figures stored in the catalogue or your own scenario assumptions.</p></div></section>
     <section className="panel feature-panel">
       <div className="feature-toolbar"><div><h3>Select a scheme</h3><p>The calculator adapts to benefit details available for that record.</p></div>
-        <select className="feature-select" value={selectedScheme.id} onChange={(event) => { setSelectedId(event.target.value); setPercentage(50); setMonths("12"); setDays("100"); }}>
+        <select className="feature-select" value={selectedScheme.id} onChange={(event) => { setSelectedId(event.target.value); setPercentage(50); setMonths(/shram yogi maandhan|pm-sym/i.test(schemes.find((scheme) => scheme.id === event.target.value)?.name ?? "") ? "12" : "3"); setDays("100"); }}>
           {schemes.map((scheme) => <option key={scheme.id} value={scheme.id}>{scheme.name}</option>)}
         </select>
       </div>

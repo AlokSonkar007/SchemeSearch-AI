@@ -23,6 +23,8 @@ import {
   BadgeCheck,
   Bot,
   Calculator,
+  Globe,
+  BellRing,
 } from "lucide-react";
 
 import ProfileWizard, {
@@ -39,6 +41,8 @@ import SchemeComparison from "./components/SchemeComparison";
 import SourceVerification from "./components/SourceVerification";
 import AISchemeAssistant from "./components/AISchemeAssistant";
 import BenefitCalculator from "./components/BenefitCalculator";
+import StateSchemeExplorer from "./components/StateSchemeExplorer";
+import SmartAlerts from "./components/SmartAlerts";
 
 import { schemes } from "./data/schemes";
 import { recommendSchemes, evaluateScheme } from "./lib/eligibility";
@@ -62,6 +66,8 @@ type Page =
   | "Source Verification"
   | "AI Scheme Assistant"
   | "Benefit Calculator"
+  | "State Explorer"
+  | "Smart Alerts"
   | "Scheme Details"
   | "Manage Schemes";
 
@@ -79,12 +85,18 @@ const navigation: {
   { label: "Source Verification", icon: BadgeCheck },
   { label: "AI Scheme Assistant", icon: Bot },
   { label: "Benefit Calculator", icon: Calculator },
+  { label: "State Explorer", icon: Globe },
+  { label: "Smart Alerts", icon: BellRing },
   { label: "Manage Schemes", icon: FilePlus2 },
 ];
 
 function App() {
   const [activePage, setActivePage] = useState<Page>("Overview");
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [language, setLanguage] = useState<"en" | "hi">(() => {
+    try { return localStorage.getItem("schemesearch_language") === "hi" ? "hi" : "en"; }
+    catch { return "en"; }
+  });
 
   // User profile
   const [profile, setProfile] = useState<UserProfile | null>(
@@ -143,11 +155,51 @@ function App() {
     "Benefit Calculator":
       "Explore illustrative benefit scenarios using listed figures.",
 
+    "State Explorer":
+      "Explore nationwide and state-specific scheme records.",
+
+    "Smart Alerts":
+      "Keep track of important application steps and reminder dates.",
+
     "Scheme Details":
       "Explore scheme information and your eligibility assessment.",
 
     "Manage Schemes":
       "Manage scheme records, eligibility rules and verification information.",
+  };
+
+  const hindiPageLabels: Record<Page, string> = {
+    Overview: "डैशबोर्ड",
+    "Find Schemes": "योजनाएँ खोजें",
+    "My Profile": "मेरी प्रोफ़ाइल",
+    "Saved Schemes": "सेव की गई योजनाएँ",
+    Applications: "आवेदन",
+    "Document Readiness": "दस्तावेज़ तैयारी",
+    "Compare Schemes": "योजनाओं की तुलना",
+    "Source Verification": "स्रोत सत्यापन",
+    "AI Scheme Assistant": "योजना सहायक",
+    "Benefit Calculator": "लाभ कैलकुलेटर",
+    "State Explorer": "राज्यवार योजनाएँ",
+    "Smart Alerts": "स्मार्ट रिमाइंडर",
+    "Scheme Details": "योजना विवरण",
+    "Manage Schemes": "योजनाएँ प्रबंधित करें",
+  };
+
+  const hindiPageDescriptions: Record<Page, string> = {
+    Overview: "आपका व्यक्तिगत सरकारी योजना खोज कार्यक्षेत्र।",
+    "Find Schemes": "अपनी प्रोफ़ाइल के अनुसार सरकारी योजनाएँ खोजें।",
+    "My Profile": "आपकी जानकारी उपयुक्त योजनाएँ खोजने में मदद करती है।",
+    "Saved Schemes": "अपनी पसंदीदा योजनाओं को यहाँ रखें।",
+    Applications: "अपने योजना आवेदनों की प्रगति देखें।",
+    "Document Readiness": "आवेदन से पहले ज़रूरी दस्तावेज़ तैयार करें।",
+    "Compare Schemes": "योजनाओं के लाभ और प्रोफ़ाइल मिलान की तुलना करें।",
+    "Source Verification": "योजना स्रोतों की समीक्षा करें।",
+    "AI Scheme Assistant": "योजनाओं के बारे में प्रश्न पूछें।",
+    "Benefit Calculator": "योजनाओं के संभावित लाभ का अनुमान लगाएँ।",
+    "State Explorer": "राज्य और राष्ट्रीय योजनाओं को खोजें।",
+    "Smart Alerts": "आवेदन के चरणों और तारीखों के रिमाइंडर रखें।",
+    "Scheme Details": "योजना की जानकारी और पात्रता मूल्यांकन देखें।",
+    "Manage Schemes": "योजना रिकॉर्ड और पात्रता नियम प्रबंधित करें।",
   };
 
   // Navigation
@@ -412,7 +464,7 @@ function App() {
           </button>
         </div>
 
-        <div className="sidebar-label">WORKSPACE</div>
+        <div className="sidebar-label">{language === "hi" ? "कार्य क्षेत्र" : "WORKSPACE"}</div>
 
         <nav className="navigation">
           {navigation.map(({ label, icon: Icon }) => (
@@ -424,7 +476,7 @@ function App() {
               onClick={() => navigate(label)}
             >
               <Icon size={19} />
-              <span>{label}</span>
+              <span>{language === "hi" ? hindiPageLabels[label] : label}</span>
 
               {activePage === label && (
                 <span className="active-dot" />
@@ -438,8 +490,8 @@ function App() {
           <div className="sidebar-help">
             <CircleHelp size={19} />
             <div>
-              <strong>Need assistance?</strong>
-              <span>Understand how it works.</span>
+              <strong>{language === "hi" ? "सहायता चाहिए?" : "Need assistance?"}</strong>
+              <span>{language === "hi" ? "जानें कि यह कैसे काम करता है।" : "Understand how it works."}</span>
             </div>
           </div>
 
@@ -476,8 +528,8 @@ function App() {
           </button>
 
           <div className="breadcrumb">
-            Workspace <span>/</span>
-            <strong>{activePage}</strong>
+            {language === "hi" ? "कार्य क्षेत्र" : "Workspace"} <span>/</span>
+            <strong>{language === "hi" ? hindiPageLabels[activePage] : activePage}</strong>
           </div>
 
           <div className="topbar-actions">
@@ -488,8 +540,23 @@ function App() {
             </div>
 
             <button
+              className="language-toggle"
+              type="button"
+              onClick={() => {
+                const next = language === "en" ? "hi" : "en";
+                setLanguage(next);
+                try { localStorage.setItem("schemesearch_language", next); } catch { /* Keep the session toggle working. */ }
+              }}
+              aria-label={language === "en" ? "Switch to Hindi" : "Switch to English"}
+            >
+              {language === "en" ? "हिन्दी" : "English"}
+            </button>
+
+            <button
               className="notification-button"
-              aria-label="Notifications"
+              aria-label={language === "hi" ? "स्मार्ट रिमाइंडर" : "Notifications"}
+              title={language === "hi" ? "स्मार्ट रिमाइंडर" : "Smart reminders"}
+              onClick={() => navigate("Smart Alerts")}
             >
               <Bell size={19} />
             </button>
@@ -510,23 +577,25 @@ function App() {
               </div>
 
               <h1>
-                {activePage === "Overview"
-                  ? "Welcome to SchemeSearch AI"
-                  : activePage}
+                {language === "hi"
+                  ? activePage === "Overview" ? "SchemeSearch AI में आपका स्वागत है" : hindiPageLabels[activePage]
+                  : activePage === "Overview" ? "Welcome to SchemeSearch AI" : activePage}
               </h1>
 
-              <p>{descriptions[activePage]}</p>
+              <p>{language === "hi" ? hindiPageDescriptions[activePage] : descriptions[activePage]}</p>
             </div>
 
             {activePage !== "Overview" && (
               <span className="page-status">
-                {activePage === "Find Schemes"
-                  ? "Eligibility discovery"
-                  : activePage === "Manage Schemes"
-                    ? "Prototype administration"
-                    : profile
-                      ? "Profile completed"
-                      : "Getting started"}
+                {language === "hi"
+                  ? (profile ? "प्रोफ़ाइल पूरी" : "शुरुआत करें")
+                  : activePage === "Find Schemes"
+                    ? "Eligibility discovery"
+                    : activePage === "Manage Schemes"
+                      ? "Prototype administration"
+                      : profile
+                        ? "Profile completed"
+                        : "Getting started"}
               </span>
             )}
 
@@ -1003,6 +1072,14 @@ function App() {
           )}
           {activePage === "Benefit Calculator" && (
             <BenefitCalculator profile={profile} schemes={managedSchemes} />
+          )}
+
+          {/* PHASE 3 FEATURES */}
+          {activePage === "State Explorer" && (
+            <StateSchemeExplorer schemes={managedSchemes} profile={profile} language={language} onViewScheme={openScheme} />
+          )}
+          {activePage === "Smart Alerts" && (
+            <SmartAlerts schemes={managedSchemes} applications={applications} language={language} />
           )}
 
           {/* ================================== */}
